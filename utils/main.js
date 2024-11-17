@@ -5,12 +5,11 @@ const express = require('express');
 const cors = require('cors');
 
 const app = express();
-const PORT = 3001;
+const PORT = 8555;
 
 // Middleware
 app.use(cors());
 app.use(express.json());
-
 /**
  * Represents pipe information.
  */
@@ -71,31 +70,31 @@ async function findCSVFiles(dir, fileArray) {
 async function readCSV(CSVFileArray, pipeArray) {
     pipeArray.length = 0;
     await Promise.all(
-        CSVFileArray.map(csvfile => {
-            return new Promise((resolve, reject) => {
-                /**
-                 * @type {Pipe}
-                 */
-                let currentPipe = new Pipe();
-                fs.createReadStream(csvfile)
-                    .pipe(csv())
-                    .on('data', (row) => {
-                        // Convert row data to appropriate types (float for numeric values, date for time)
-                        currentPipe.pipeName = path.basename(csvfile).split('_')[0];
-                        currentPipe.time.push(row['Time'])
-                        currentPipe.currentVolume.push(row['Inj Gas Meter Volume Instantaneous'] ? parseFloat(row['Inj Gas Meter Volume Instantaneous']) : undefined),
-                            currentPipe.targetVolume.push(row['Inj Gas Meter Volume Setpoint'] ? parseFloat(row['Inj Gas Meter Volume Setpoint']) : undefined),
-                            currentPipe.valveOpenPercentage.push(row['Inj Gas Valve Percent Open'] ? (parseFloat(row['Inj Gas Valve Percent Open'])) / 100 : undefined)
-                    })
-                    .on('end', () => {
-                        pipeArray.push(currentPipe);
-                        resolve();
-                    })
-                    .on('error', (err) => {
-                        reject(err);
-                    });
-            });
-        })
+    CSVFileArray.map(csvfile => {
+        return new Promise((resolve, reject) => {
+            /**
+             * @type {Pipe}
+             */
+            let currentPipe = new Pipe();
+            fs.createReadStream(csvfile)
+                .pipe(csv())
+                .on('data', (row) => {
+                    // Convert row data to appropriate types (float for numeric values, date for time)
+                    currentPipe.pipeName = path.basename(csvfile).split('_')[0];
+                    currentPipe.time.push(row['Time'])
+                    currentPipe.currentVolume.push(row['Inj Gas Meter Volume Instantaneous'] ? parseFloat(row['Inj Gas Meter Volume Instantaneous']) : undefined),
+                    currentPipe.targetVolume.push(row['Inj Gas Meter Volume Setpoint'] ? parseFloat(row['Inj Gas Meter Volume Setpoint']) : undefined),
+                    currentPipe.valveOpenPercentage.push(row['Inj Gas Valve Percent Open'] ? (parseFloat(row['Inj Gas Valve Percent Open']))/100 : undefined)
+                })
+                .on('end', () => {
+                    pipeArray.push(currentPipe);
+                    resolve();
+                })
+                .on('error', (err) => {
+                    reject(err);
+                });
+        });
+    })
     );
 }
 
@@ -106,18 +105,18 @@ async function readCSV(CSVFileArray, pipeArray) {
 async function interpolateValue(array) {
     let unassignedValues = []; //Empty array to locate unassigned indexes
     let lastKnownData = 0; //Most recent value that is defined
-
+    
     let startIndex = 0;
-    while (startIndex < array.length && array[startIndex] == undefined) {
+    while(startIndex < array.length && array[startIndex] == undefined){
         array[startIndex] = -1;
         startIndex++;
     }
 
     for (let i = startIndex; i < array.length; i++) {
-        if (array[i] != undefined) { //If the data value exists,
+        if (array[i] != undefined){ //If the data value exists,
             lastKnownData = array[i]; //Define it as the most recent data value.
-            if (unassignedValues.length > 0) { //If there are values that are currently unassigned,
-                for (let j = 0; j < unassignedValues.length; j++) {
+            if(unassignedValues.length > 0){ //If there are values that are currently unassigned,
+                for(let j = 0; j < unassignedValues.length; j++){
                     array[unassignedValues[j]] = lastKnownData; //Assign them to the value we found.
                 }
                 unassignedValues.length = 0; //Reset the array.
@@ -127,8 +126,8 @@ async function interpolateValue(array) {
         }
     }
 
-    if (unassignedValues.length > 0) {
-        for (let k = 0; k < unassignedValues.length; k++) {
+    if(unassignedValues.length > 0){
+        for(let k = 0; k < unassignedValues.length; k++){
             array[unassignedValues[k]] = lastKnownData;
         }
     }
@@ -136,14 +135,14 @@ async function interpolateValue(array) {
     unassignedValues.length = 0;
     let firstValue = -1;
     for (let l = 0; l < array.length; l++) {
-        if (array[l] == -1) {
+        if(array[l] == -1){
             unassignedValues.push(l);
         } else {
             firstValue = array[l];
             break;
         }
     }
-    for (let m = 0; m < unassignedValues.length; m++) {
+    for(let m = 0; m < unassignedValues.length; m++){
         array[unassignedValues[m]] = firstValue;
     }
 }
@@ -152,7 +151,7 @@ async function interpolateValue(array) {
  * Ensures no undefines are in the program.
  * @param {Pipe} pipeLocation - Pipe location.
  */
-async function validatePipe(pipeLocation) {
+async function validatePipe(pipeLocation){
     await interpolateValue(pipeLocation.currentVolume);
     await interpolateValue(pipeLocation.targetVolume);
     await interpolateValue(pipeLocation.valveOpenPercentage);
@@ -171,23 +170,23 @@ let hydrateLikelihood;
  * @param {Pipe} pipeInput - Pipe input of the hydrate detection.
  * @param {number[]} risk - Risk level. 0 for none-to-low, 1 for medium, 2 for high.
  */
-function alertApp(pipeInput, risk) { //Sends an alert if hydrate is detected!
+function alertApp(pipeInput, risk){ //Sends an alert if hydrate is detected!
     //if(hydrateChance != undefined) console.log(`${risk} risk detected! There is a ${((Math.round(hydrateChance * 100) / 100).toString())}% chance that there is a hydrate in pipe "${pipeInput.pipeName}"!`);
     //else
     let riskText = "Low";
     let medCount = 0;
     let highCount = 0;
     risk.forEach(num => {
-        if (num == 1) {
+        if(num == 1){
             medCount += 1;
         }
-        if (num == 2) {
+        if(num == 2){
             highCount += 1;
         }
     });
-    if (medCount > 10 || (highCount > (medCount - 3) && highCount > 3 && medCount > 3)) {
+    if(medCount > pipeInput.currentVolume.length / 14 || (highCount > (medCount-3) && highCount > 3 && medCount > 3)){
         riskText = "Medium";
-        if (highCount > (medCount - 3) && highCount != medCount) riskText = "High";
+        if(highCount > (medCount-3) && highCount != medCount) riskText = "High";
     }
     console.log(`${riskText} risk detected of a hydrate at ${pipeInput.pipeName}!\n\n`);
     //console.log(`MedCount: ${medCount}\n\nHighCount: ${highCount}`);
@@ -201,7 +200,7 @@ function alertApp(pipeInput, risk) { //Sends an alert if hydrate is detected!
  * @param {Pipe} pipeInput - Pipe to pass information from.
  * @param {number} outChance - Stores value in outChance variable.
  */
-async function calculateHydrateChance(pipeInput, outChance) {
+async function calculateHydrateChance(pipeInput, outChance){
     await validatePipe(pipeInput);
     /**
      * @type {number}
@@ -218,48 +217,34 @@ async function calculateHydrateChance(pipeInput, outChance) {
      * Maximum percentage to run normally.
     */
     const valveThresholdHigh = 0.8; // 80% valve position
-
+ 
     let hydrateRisk = [];
     pipeInput.time.map((entry, index) => {
-        if (index != 0) {
-            if (pipeInput.currentVolume[index] + 100 < pipeInput.targetVolume[index] || pipeInput.currentVolume[index] - 100 > pipeInput.targetVolume[index]) {
-                // console.log(`2 detected at ${pipeInput.pipeName}.`);
-                hydrateRisk.push(2);
-            }
-            if (pipeInput.currentVolume[index] + 50 < pipeInput.targetVolume[index] || pipeInput.currentVolume[index] - 50 > pipeInput.targetVolume[index]) {
-                // console.log(`1 detected at ${pipeInput.pipeName}.`);
-                hydrateRisk.push(1);
-            }
-            //this doesn't account for non-simultaneous increases OR outliers
-            if (pipeInput.currentVolume[index] - pipeInput.currentVolume[index - 1] > 200 && pipeInput.valveOpenPercentage[index] * 100 - pipeInput.valveOpenPercentage[index - 1] * 100 > 100) {
-                // console.log(`2 detected at ${pipeInput.pipeName}.`);
-                hydrateRisk.push(2);
-            }
-            if (pipeInput.currentVolume[index] - pipeInput.currentVolume[index - 1] > 50 && pipeInput.valveOpenPercentage[index] * 100 - pipeInput.valveOpenPercentage[index - 1] * 100 > 5) {
-                // console.log(`1 detected at ${pipeInput.pipeName}.`);
-                hydrateRisk.push(1);
-            }
+        if(index != 0){
+        if(pipeInput.currentVolume[index]+100 < pipeInput.targetVolume[index] || pipeInput.currentVolume[index]-100 > pipeInput.targetVolume[index]){
+            // console.log(`2 detected at ${pipeInput.pipeName}.`);
+            hydrateRisk.push(2);
+        }
+        if(pipeInput.currentVolume[index]+50 < pipeInput.targetVolume[index] || pipeInput.currentVolume[index]-50 > pipeInput.targetVolume[index]){
+            // console.log(`1 detected at ${pipeInput.pipeName}.`);
+            hydrateRisk.push(1);
+        }
+        //this doesn't account for non-simultaneous increases OR outliers
+        let gasChange = pipeInput.currentVolume[index] - pipeInput.currentVolume[index - 1];
+        let valveChange = pipeInput.valveOpenPercentage[index]*100 - pipeInput.valveOpenPercentage[index-1]*100;
+        if(gasChange < 0 && Math.abs(gasChange) > 50 && valveChange > 20){
+            //console.log(`2 detected at ${pipeInput.pipeName}.`);
+            hydrateRisk.push(2);
+        }
+        if(gasChange < 0 && Math.abs(gasChange) > 30 && valveChange > 5){
+            //console.log(`1 detected at ${pipeInput.pipeName}.`);
+            hydrateRisk.push(1);
+        }
         }
     });
+    //console.log(hydrateRisk);
     alertApp(pipeInput, hydrateRisk);
 }
-
-
-
-//ContinousCheckHydrate function {MAY NOT NEED ANYMORE}
-/**
- * Continously checks if hydrate is formed based on levels of pipe.
- * @param {Pipe} pipeInput - Pipe to pass information from.
- */
-// async function continuousCheckHydrate(pipeInput){
-//     await validatePipe(pipeInput);
-//     pipeInput.time.map((entry, index) => {
-//         if(index != 0){
-//         //this doesn't account for non-simultaneous increases
-
-//         }
-//     });
-// }
 
 //CheckPipes function
 /**
@@ -268,7 +253,7 @@ async function calculateHydrateChance(pipeInput, outChance) {
  * @param {number} outChance - Output of chance of hydrate.
  * @param {string[]} CSVFileArray - Array of files
  */
-async function checkPipes(pipeArray, outChance, CSVFileArray) {
+async function checkPipes(pipeArray, outChance, CSVFileArray){
     console.log(`Reading files...`);
     await findCSVFiles('./', CSVFileArray);
     await readCSV(CSVFileArray, pipeArray).then(() => {
@@ -290,14 +275,16 @@ async function checkPipes(pipeArray, outChance, CSVFileArray) {
         await calculateHydrateChance(currentPipe, outChance);
     });
     console.log("\n\n\n\nAll pipes checked!\n\n\n\n");
-    return 0;
+    //return 0;
 }
 
 app.get('/api/checkpipes', async (req, res) => {
     try {
-        const pipes = checkPipes(pipeLocations, hydrateLikelihood, CSVFiles);
+        await checkPipes(pipeLocations, hydrateLikelihood, CSVFiles);
+        console.log("pipes??",pipeLocations);
 
-        res.json(pipes);
+        res.json(pipeLocations);
+
     } catch (error) {
         res.status(500).send({ error: error.message });
     }
@@ -308,5 +295,3 @@ app.listen(PORT, () => {
 });
 
 //checkPipes(pipeLocations, hydrateLikelihood, CSVFiles);
-
-module.exports = { checkPipes, readCSV, Pipe };
