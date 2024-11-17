@@ -1,14 +1,18 @@
 {
   "expo": {
-    "name": "HydrateDetection",
-    "slug": "HydrateDetection",
+    "name": "Ice-Breaker",
+    "slug": "ice-breaker",
+    "assetBundlePatterns": [
+      "assets/**/*"
+    ],
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./Ice-Breaker-main/assets/icon.png",
     "userInterfaceStyle": "light",
+    "entryPoint": "./index.js",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./Ice-Breaker-main/assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -24,11 +28,6 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    },
-    "extra": {
-      "eas": {
-        "projectId": "a56bb5a7-5d71-49cb-9048-5ab71a40762f"
-      }
     }
   }
 }
