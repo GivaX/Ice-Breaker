@@ -10,6 +10,9 @@ const PORT = 8555;
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+let alert = "";
+
 /**
  * Represents pipe information.
  */
@@ -188,6 +191,7 @@ function alertApp(pipeInput, risk){ //Sends an alert if hydrate is detected!
         riskText = "Medium";
         if(highCount > (medCount-3) && highCount != medCount) riskText = "High";
     }
+    return (`${riskText} risk detected of a hydrate at ${pipeInput.pipeName}!\n\n`);
     console.log(`${riskText} risk detected of a hydrate at ${pipeInput.pipeName}!\n\n`);
     //console.log(`MedCount: ${medCount}\n\nHighCount: ${highCount}`);
 }
@@ -243,7 +247,7 @@ async function calculateHydrateChance(pipeInput, outChance){
         }
     });
     //console.log(hydrateRisk);
-    alertApp(pipeInput, hydrateRisk);
+    alert = alertApp(pipeInput, hydrateRisk);
 }
 
 //CheckPipes function
@@ -284,6 +288,18 @@ app.get('/api/checkpipes', async (req, res) => {
         console.log("pipes??",pipeLocations);
 
         res.json(pipeLocations);
+
+    } catch (error) {
+        res.status(500).send({ error: error.message });
+    }
+});
+
+app.get('/api/alertapp', async (req, res) => {
+    try {
+        await checkPipes(pipeLocations, hydrateLikelihood, CSVFiles);
+        console.log("alert: ", alert);
+
+        res.json(alert);
 
     } catch (error) {
         res.status(500).send({ error: error.message });

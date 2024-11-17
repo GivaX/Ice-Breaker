@@ -9,22 +9,22 @@ const DashboardScreen = ({navigation}) => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const response = await axios.get(`http://10.155.169.130:8555/api/checkpipes`); // Replace with fetch if needed
-                setData(response.data);
-                setLoading(false);
-            } catch (err) {
-                setError(err.message);
-                setLoading(false);
-            }
-        };
+    // useEffect(() => {
+    //     const fetchData = async () => {
+    //         try {
+    //             const response = await axios.get(`http://10.155.169.130:8555/api/checkpipes`); // Replace with fetch if needed
+    //             setData(response.data);
+    //             setLoading(false);
+    //         } catch (err) {
+    //             setError(err.message);
+    //             setLoading(false);
+    //         }
+    //     };
 
-        fetchData();
-    }, []);
+    //     fetchData();
+    // }, []);
 
-    if (loading) return <ActivityIndicator size="large" color="#0000ff" />;
+    //if (loading) return <ActivityIndicator size="large" color="#0000ff" />;
     if (error) return <Text style={styles.error}>{`Error: ${error}`}</Text>;
 
     return (

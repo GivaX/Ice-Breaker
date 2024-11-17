@@ -40,7 +40,8 @@ const ValveTrends = ({ navigation }) => {
         };
         (async () => {
             const dir = FileSystem.documentDirectory; // Example: Use the document directory
-            const csvFiles = await findCSVFiles('./Ice-Breaker-main/assets');
+            console.log('Directory:', dir);
+            const csvFiles = await findCSVFiles('../utils/');
             console.log('CSV Files:', csvFiles);
         })();
 
